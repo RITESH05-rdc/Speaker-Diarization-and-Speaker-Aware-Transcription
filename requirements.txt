@@ -1,0 +1,8 @@
+streamlit
+torch
+torchaudio
+pyannote.audio
+librosa==0.10.1
+soundfile
+openai-whisper
+ffmpeg-python
