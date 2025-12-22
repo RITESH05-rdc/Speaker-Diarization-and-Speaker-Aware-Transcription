@@ -63,7 +63,7 @@ st.write(
 def load_models():
     diarization_pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        use_auth_token=st.secrets["HF_TOKEN"]
+        token=st.secrets["HF_TOKEN"]
     )
     whisper_model = whisper.load_model("base")
     return diarization_pipeline, whisper_model
@@ -154,3 +154,4 @@ if uploaded_file:
     # Cleanup temp file
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
