@@ -1,9 +1,3 @@
-# ================= PYTORCH 2.6 SAFETY FIX =================
-import torch
-from torch.serialization import add_safe_globals
-from torch.torch_version import TorchVersion
-
-
 # ================= IMPORTS =================
 import streamlit as st
 import tempfile
@@ -70,9 +64,9 @@ st.write(
 def load_models():
     diarization_pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        token=st.secrets["HF_TOKEN"]
+        use_auth_token=st.secrets["HF_TOKEN"]
     )
-    whisper_model = whisper.load_model("base")
+    whisper_model = whisper.load_model("tiny")
     return diarization_pipeline, whisper_model
 
 pipeline, whisper_model = load_models()
@@ -84,7 +78,6 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file:
-    # Save uploaded file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         tmp.write(uploaded_file.read())
         audio_path = tmp.name
@@ -98,13 +91,11 @@ if uploaded_file:
 
         with st.spinner("Analyzing speakers and transcribing..."):
 
-            # -------- SPEAKER DIARIZATION --------
             status.write("🔍 Running speaker diarization...")
-            pipeline_output = pipeline(audio_path)
-            annotation = pipeline_output.speaker_diarization
+            diarization = pipeline(audio_path)
+            annotation = diarization.speaker_diarization
             progress.progress(30)
 
-            # -------- LOAD AUDIO --------
             status.write("🎧 Loading audio...")
             audio, sr = librosa.load(audio_path, sr=16000)
             progress.progress(50)
@@ -112,31 +103,30 @@ if uploaded_file:
             st.subheader("📝 Speaker-wise Transcript")
 
             speaker_colors = {}
-            color_palette = [
-                "#00ffd5", "#ffb703", "#fb8500",
-                "#8ecae6", "#ff006e", "#8338ec"
-            ]
+            palette = ["#00ffd5", "#ffb703", "#fb8500",
+                       "#8ecae6", "#ff006e", "#8338ec"]
 
-            # -------- ITERATE OVER SPEAKERS --------
             for segment, _, speaker in annotation.itertracks(yield_label=True):
 
                 if speaker not in speaker_colors:
-                    speaker_colors[speaker] = random.choice(color_palette)
+                    speaker_colors[speaker] = random.choice(palette)
 
                 start = int(segment.start * sr)
                 end = int(segment.end * sr)
                 segment_audio = audio[start:end]
 
-                # Skip very short segments (<0.5 sec)
                 if len(segment_audio) < int(sr * 0.5):
                     continue
 
-                sf.write("temp.wav", segment_audio, sr)
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as seg:
+                    sf.write(seg.name, segment_audio, sr)
 
                 transcription = whisper_model.transcribe(
-                    "temp.wav",
+                    seg.name,
                     fp16=False
                 )
+
+                os.remove(seg.name)
 
                 st.markdown(
                     f"""
@@ -158,7 +148,5 @@ if uploaded_file:
 
         st.balloons()
 
-    # -------- CLEANUP TEMP FILE --------
     if os.path.exists(audio_path):
         os.remove(audio_path)
-
