@@ -1,11 +1,12 @@
 streamlit
 torch==2.8
 torchaudio
-pyannote.audio
+pyannote.audio==3.1
 huggingface_hub
 librosa
 soundfile
 openai-whisper
 ffmpeg-python
+
 
 
