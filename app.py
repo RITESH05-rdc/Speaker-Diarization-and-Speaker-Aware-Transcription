@@ -70,10 +70,10 @@ def load_models():
 
     diarization_pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        token=hf_token
+        use_auth_token=hf_token
     )
 
-    whisper_model = whisper.load_model("tiny")
+    whisper_model = whisper.load_model("tiny")  # deployment-safe
     return diarization_pipeline, whisper_model
 
 
@@ -99,11 +99,13 @@ if uploaded_file:
 
         with st.spinner("Analyzing speakers and transcribing..."):
 
+            # -------- SPEAKER DIARIZATION --------
             status.write("🔍 Running speaker diarization...")
-            diarization = diarization_pipeline(audio_path)
+            diarization = diarization_pipeline({"audio": audio_path})
             annotation = diarization.speaker_diarization
             progress.progress(30)
 
+            # -------- LOAD AUDIO --------
             status.write("🎧 Loading audio...")
             audio, sr = librosa.load(audio_path, sr=16000)
             progress.progress(50)
@@ -111,9 +113,12 @@ if uploaded_file:
             st.subheader("📝 Speaker-wise Transcript")
 
             speaker_colors = {}
-            palette = ["#00ffd5", "#ffb703", "#fb8500",
-                       "#8ecae6", "#ff006e", "#8338ec"]
+            palette = [
+                "#00ffd5", "#ffb703", "#fb8500",
+                "#8ecae6", "#ff006e", "#8338ec"
+            ]
 
+            # -------- ITERATE SEGMENTS --------
             for segment, _, speaker in annotation.itertracks(yield_label=True):
 
                 if speaker not in speaker_colors:
@@ -123,6 +128,7 @@ if uploaded_file:
                 end = int(segment.end * sr)
                 segment_audio = audio[start:end]
 
+                # Skip very short segments
                 if len(segment_audio) < int(sr * 0.5):
                     continue
 
