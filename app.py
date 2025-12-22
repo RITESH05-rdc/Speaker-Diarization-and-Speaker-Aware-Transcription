@@ -5,6 +5,7 @@ import soundfile as sf
 import whisper
 from pyannote.audio import Pipeline
 import random
+import os
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -76,12 +77,12 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file:
+    # Save uploaded file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         tmp.write(uploaded_file.read())
         audio_path = tmp.name
 
     st.audio(uploaded_file)
-
     st.divider()
 
     if st.button("🚀 Process Audio"):
@@ -89,10 +90,14 @@ if uploaded_file:
         status = st.empty()
 
         with st.spinner("Analyzing speakers and transcribing..."):
+
+            # ---- Speaker Diarization ----
             status.write("🔍 Running speaker diarization...")
-            diarization = pipeline(audio_path)
+            pipeline_output = pipeline(audio_path)
+            annotation = pipeline_output.speaker_diarization
             progress.progress(30)
 
+            # ---- Load Audio ----
             status.write("🎧 Loading audio...")
             audio, sr = librosa.load(audio_path, sr=16000)
             progress.progress(50)
@@ -105,22 +110,26 @@ if uploaded_file:
                 "#8ecae6", "#ff006e", "#8338ec"
             ]
 
-            for turn, _, speaker in diarization.itertracks(yield_label=True):
+            # ---- Iterate correctly over annotation ----
+            for segment, _, speaker in annotation.itertracks(yield_label=True):
+
                 if speaker not in speaker_colors:
                     speaker_colors[speaker] = random.choice(color_palette)
 
-                start = int(turn.start * sr)
-                end = int(turn.end * sr)
-                segment = audio[start:end]
+                start = int(segment.start * sr)
+                end = int(segment.end * sr)
+                segment_audio = audio[start:end]
 
-                if len(segment) < sr * 0.5:
+                # Skip very short segments
+                if len(segment_audio) < int(sr * 0.5):
                     continue
 
-                sf.write("temp.wav", segment, sr)
-                text = whisper_model.transcribe(
+                sf.write("temp.wav", segment_audio, sr)
+
+                transcription = whisper_model.transcribe(
                     "temp.wav",
                     fp16=False
-                )["text"]
+                )
 
                 st.markdown(
                     f"""
@@ -129,9 +138,9 @@ if uploaded_file:
                             🗣️ {speaker}
                         </h4>
                         <div class="time">
-                            ⏱️ {turn.start:.1f}s → {turn.end:.1f}s
+                            ⏱️ {segment.start:.1f}s → {segment.end:.1f}s
                         </div>
-                        <p>{text}</p>
+                        <p>{transcription["text"].strip()}</p>
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -141,3 +150,7 @@ if uploaded_file:
             status.success("✅ Processing complete!")
 
         st.balloons()
+
+    # Cleanup temp file
+    if os.path.exists(audio_path):
+        os.remove(audio_path)
