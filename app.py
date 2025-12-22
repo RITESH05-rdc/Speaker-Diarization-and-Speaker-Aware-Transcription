@@ -74,7 +74,7 @@ def load_models():
     )
 
     whisper_model = whisper.load_model("tiny")
-    return diarization_pipeline, whisper_model
+    return pipeline, whisper_model
 
 
 # ================= FILE UPLOAD =================
@@ -156,4 +156,5 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
