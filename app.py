@@ -97,10 +97,18 @@ if uploaded_file:
 
         with st.spinner("Analyzing speakers and transcribing..."):
 
+            # -------- LOAD & NORMALIZE AUDIO --------
+            status.write("🎧 Normalizing audio...")
+            audio, sr = librosa.load(audio_path, sr=16000, mono=True)
+            sf.write(audio_path, audio, sr)
+            progress.progress(20)
+            
+            # -------- SPEAKER DIARIZATION --------
             status.write("🔍 Running speaker diarization...")
             diarization = diarization_pipeline({"audio": audio_path})
             annotation = diarization.speaker_diarization
-            progress.progress(30)
+            progress.progress(40)
+
 
 
             status.write("🎧 Loading audio...")
@@ -157,6 +165,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
