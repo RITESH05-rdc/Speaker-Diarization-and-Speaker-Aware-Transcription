@@ -5,6 +5,5 @@ pyannote.audio==3.1.1
 openai-whisper
 librosa
 soundfile
-streamlit
 ffmpeg-python
-
+streamlit
