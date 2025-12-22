@@ -70,7 +70,7 @@ def load_models():
 
     diarization_pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        token=hf_token
+        use_auth_token=hf_token
     )
 
     whisper_model = whisper.load_model("tiny")
@@ -165,6 +165,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
