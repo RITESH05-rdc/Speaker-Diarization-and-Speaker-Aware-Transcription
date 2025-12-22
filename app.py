@@ -62,14 +62,20 @@ st.write(
 # ================= LOAD MODELS =================
 @st.cache_resource
 def load_models():
+    hf_token = st.secrets.get("HF_TOKEN", None)
+
+    if hf_token is None:
+        st.error("❌ Hugging Face token not found. Please add HF_TOKEN to Streamlit secrets.")
+        st.stop()
+
     diarization_pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        use_auth_token=st.secrets["HF_TOKEN"]
+        token=hf_token
     )
+
     whisper_model = whisper.load_model("tiny")
     return diarization_pipeline, whisper_model
 
-pipeline, whisper_model = load_models()
 
 # ================= FILE UPLOAD =================
 uploaded_file = st.file_uploader(
@@ -150,3 +156,4 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
