@@ -1,3 +1,12 @@
+# ================= PYTORCH 2.6 SAFETY FIX =================
+import torch
+from torch.serialization import add_safe_globals
+from torch.torch_version import TorchVersion
+
+# Allow trusted TorchVersion class for pyannote models
+add_safe_globals([TorchVersion])
+
+# ================= IMPORTS =================
 import streamlit as st
 import tempfile
 import librosa
@@ -7,13 +16,13 @@ from pyannote.audio import Pipeline
 import random
 import os
 
-# ---------------- PAGE CONFIG ----------------
+# ================= PAGE CONFIG =================
 st.set_page_config(
     page_title="Speaker Diarization & Transcription",
     layout="wide"
 )
 
-# ---------------- CUSTOM CSS ----------------
+# ================= CUSTOM CSS =================
 st.markdown("""
 <style>
 body {
@@ -51,14 +60,14 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- TITLE ----------------
+# ================= TITLE =================
 st.title("🎙️ Speaker Diarization & Transcription")
 st.write(
-    "Upload an audio file to **identify speakers** and get a "
-    "**speaker-wise transcript** with timestamps."
+    "Upload an audio file to **identify speakers** and generate "
+    "**speaker-wise transcripts with timestamps**."
 )
 
-# ---------------- LOAD MODELS ----------------
+# ================= LOAD MODELS =================
 @st.cache_resource
 def load_models():
     diarization_pipeline = Pipeline.from_pretrained(
@@ -70,7 +79,7 @@ def load_models():
 
 pipeline, whisper_model = load_models()
 
-# ---------------- FILE UPLOAD ----------------
+# ================= FILE UPLOAD =================
 uploaded_file = st.file_uploader(
     "🎧 Upload Audio File",
     type=["wav", "mp3"]
@@ -91,13 +100,13 @@ if uploaded_file:
 
         with st.spinner("Analyzing speakers and transcribing..."):
 
-            # ---- Speaker Diarization ----
+            # -------- SPEAKER DIARIZATION --------
             status.write("🔍 Running speaker diarization...")
             pipeline_output = pipeline(audio_path)
             annotation = pipeline_output.speaker_diarization
             progress.progress(30)
 
-            # ---- Load Audio ----
+            # -------- LOAD AUDIO --------
             status.write("🎧 Loading audio...")
             audio, sr = librosa.load(audio_path, sr=16000)
             progress.progress(50)
@@ -110,7 +119,7 @@ if uploaded_file:
                 "#8ecae6", "#ff006e", "#8338ec"
             ]
 
-            # ---- Iterate correctly over annotation ----
+            # -------- ITERATE OVER SPEAKERS --------
             for segment, _, speaker in annotation.itertracks(yield_label=True):
 
                 if speaker not in speaker_colors:
@@ -120,7 +129,7 @@ if uploaded_file:
                 end = int(segment.end * sr)
                 segment_audio = audio[start:end]
 
-                # Skip very short segments
+                # Skip very short segments (<0.5 sec)
                 if len(segment_audio) < int(sr * 0.5):
                     continue
 
@@ -151,7 +160,6 @@ if uploaded_file:
 
         st.balloons()
 
-    # Cleanup temp file
+    # -------- CLEANUP TEMP FILE --------
     if os.path.exists(audio_path):
         os.remove(audio_path)
-
