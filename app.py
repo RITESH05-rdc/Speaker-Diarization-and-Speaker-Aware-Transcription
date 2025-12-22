@@ -3,8 +3,6 @@ import torch
 from torch.serialization import add_safe_globals
 from torch.torch_version import TorchVersion
 
-# Allow trusted TorchVersion class for pyannote models
-add_safe_globals([TorchVersion])
 
 # ================= IMPORTS =================
 import streamlit as st
@@ -163,3 +161,4 @@ if uploaded_file:
     # -------- CLEANUP TEMP FILE --------
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
