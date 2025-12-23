@@ -26,13 +26,40 @@ if "view_mode" not in st.session_state:
     st.session_state.view_mode = "📋 Table View"
 
 # ================= CUSTOM CSS =================
-st.markdown("""
+sst.markdown("""
 <style>
 body {
     background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
 }
-.main { color: #f5f5f5; }
-h1, h2, h3 { color: #00ffd5; }
+.main {
+    color: #f5f5f5;
+}
+h1, h2, h3 {
+    color: #00ffd5;
+}
+.stButton>button {
+    background: linear-gradient(90deg, #00c6ff, #0072ff);
+    color: white;
+    border-radius: 10px;
+    padding: 0.6em 1.2em;
+    border: none;
+    font-weight: bold;
+}
+.stButton>button:hover {
+    transform: scale(1.03);
+    background: linear-gradient(90deg, #0072ff, #00c6ff);
+}
+.speaker-card {
+    background: rgba(255,255,255,0.08);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.time {
+    font-size: 0.85em;
+    color: #bbbbbb;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -190,4 +217,5 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
