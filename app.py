@@ -11,7 +11,7 @@ from huggingface_hub import login
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
-    page_title="Speaker Diarization & Transcription",
+    page_title="Speaker Diarization & Speaker Aware Transcription",
     layout="wide"
 )
 
@@ -190,3 +190,4 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
