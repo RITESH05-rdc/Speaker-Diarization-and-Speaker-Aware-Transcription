@@ -114,6 +114,28 @@ if uploaded_file:
             annotation = diarization_pipeline({"audio": audio_path})
             progress.progress(40)
 
+            # -------- DISPLAY DIARIZATION ONLY (NO TRANSCRIPTION) --------
+            status.write("📊 Displaying diarization results...")
+            
+            diarization_results = []
+            
+            for segment, _, speaker in annotation.itertracks(yield_label=True):
+                diarization_results.append({
+                    "Speaker": speaker,
+                    "Start Time (s)": round(segment.start, 2),
+                    "End Time (s)": round(segment.end, 2),
+                    "Duration (s)": round(segment.end - segment.start, 2)
+                })
+            
+            diar_df = pd.DataFrame(diarization_results)
+            
+            st.subheader("🗣️ Speaker Diarization Output (No Transcription)")
+            st.dataframe(
+                diar_df,
+                use_container_width=True,
+                hide_index=True
+            )
+
 
             # -------- COLLECT RESULTS (COLAB LOGIC) --------
             results = []
@@ -169,4 +191,5 @@ if uploaded_file:
     # -------- CLEANUP --------
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
