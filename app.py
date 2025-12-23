@@ -143,29 +143,18 @@ if uploaded_file:
                     "text": transcription["text"].strip()
                 })
             
-            # -------- DISPLAY RESULTS (STREAMLIT UI) --------
-            speaker_colors = {}
-            palette = ["#00ffd5", "#ffb703", "#fb8500",
-                       "#8ecae6", "#ff006e", "#8338ec"]
-            
-            for r in results:
-                if r["speaker"] not in speaker_colors:
-                    speaker_colors[r["speaker"]] = random.choice(palette)
-            
-                st.markdown(
-                    f"""
-                    <div class="speaker-card">
-                        <h4 style="color:{speaker_colors[r["speaker"]]}">
-                            🗣️ {r["speaker"]}
-                        </h4>
-                        <div class="time">
-                            ⏱️ {r["start"]}s → {r["end"]}s
-                        </div>
-                        <p>{r["text"]}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            progress.progress(80)
+
+            # -------- DISPLAY AS TABLE --------
+            st.subheader("📝 Speaker-wise Transcript (Table View)")
+
+            df = pd.DataFrame(results)
+
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True
+            )
 
 
             progress.progress(100)
@@ -175,6 +164,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
