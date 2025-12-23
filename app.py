@@ -147,16 +147,62 @@ if uploaded_file:
 
             import pandas as pd
             # -------- DISPLAY AS TABLE --------
-            st.subheader("📝 Speaker-wise Transcript (Table View)")
-
             df = pd.DataFrame(results)
 
-            st.dataframe(
-                df,
-                use_container_width=True,
-                hide_index=True
+            # ================= TALK-TIME SUMMARY =================
+            st.subheader("🧠 Talk-Time Summary")
+            summary = df.groupby("Speaker")["Duration"].sum().reset_index()
+            st.dataframe(summary, hide_index=True, use_container_width=True)
+
+            st.divider()
+
+            # ================= VIEW TOGGLE =================
+            view = st.radio(
+                "Choose View",
+                ["📋 Table View", "💬 Chat View"],
+                horizontal=True
             )
 
+            # ================= TABLE VIEW =================
+            if view == "📋 Table View":
+                st.subheader("📝 Transcript (Table View)")
+                st.dataframe(
+                    df[["Start (s)", "End (s)", "Speaker", "Transcript"]],
+                    hide_index=True,
+                    use_container_width=True
+                )
+
+            # ================= CHAT VIEW =================
+            else:
+                st.subheader("💬 Transcript (Chat View)")
+                for _, r in df.iterrows():
+                    st.markdown(
+                        f"""
+                        **{r['Speaker']}**  
+                        <small>{r['Start (s)']}s → {r['End (s)']}s</small>  
+                        {r['Transcript']}
+                        ---
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+            # ================= DOWNLOAD =================
+            st.divider()
+            st.subheader("📄 Download Transcript")
+
+            txt_output = ""
+            for _, r in df.iterrows():
+                txt_output += (
+                    f"[{r['Start (s)']}s → {r['End (s)']}s] "
+                    f"{r['Speaker']}: {r['Transcript']}\n"
+                )
+
+            st.download_button(
+                label="⬇ Download as .txt",
+                data=txt_output,
+                file_name="speaker_transcript.txt",
+                mime="text/plain"
+            )
 
             progress.progress(100)
             status.success("✅ Processing complete!")
@@ -165,6 +211,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
