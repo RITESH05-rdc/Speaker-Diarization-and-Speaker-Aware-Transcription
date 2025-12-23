@@ -153,7 +153,7 @@ if uploaded_file:
             st.subheader("🧠 Talk-Time Summary")
             
             summary = (
-                df.assign(Duration=df["End (s)"] - df["Start (s)"])
+                df.assign(Duration=df["end"] - df["start"])
                   .groupby("speaker", as_index=False)["Duration"]
                   .sum()
                   .round(2)
@@ -175,7 +175,7 @@ if uploaded_file:
             if view == "📋 Table View":
                 st.subheader("📝 Transcript (Table View)")
                 st.dataframe(
-                    df[["Start (s)", "End (s)", "Speaker", "Transcript"]],
+                    df[["start", "end", "speaker", "text"]],
                     hide_index=True,
                     use_container_width=True
                 )
@@ -186,9 +186,9 @@ if uploaded_file:
                 for _, r in df.iterrows():
                     st.markdown(
                         f"""
-                        **{r['Speaker']}**  
-                        <small>{r['Start (s)']}s → {r['End (s)']}s</small>  
-                        {r['Transcript']}
+                        **{r['speaker']}**  
+                        <small>{r['start']}s → {r['end']}s</small>  
+                        {r['text']}
                         ---
                         """,
                         unsafe_allow_html=True
@@ -201,9 +201,10 @@ if uploaded_file:
             txt_output = ""
             for _, r in df.iterrows():
                 txt_output += (
-                    f"[{r['Start (s)']}s → {r['End (s)']}s] "
-                    f"{r['Speaker']}: {r['Transcript']}\n"
+                    f"[{r['start']}s → {r['end']}s] "
+                    f"{r['speaker']}: {r['text']}\n"
                 )
+
 
             st.download_button(
                 label="⬇ Download as .txt",
@@ -219,6 +220,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
