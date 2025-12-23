@@ -55,7 +55,7 @@ h1, h2, h3 {
 """, unsafe_allow_html=True)
 
 # ================= TITLE =================
-st.title("🎙️ Speaker Diarization & Transcription")
+st.title("🎙️ Speaker Diarization & Speaker Aware Transcription")
 st.write(
     "Upload an audio file to **identify speakers** and generate "
     "**speaker-wise transcripts with timestamps**."
@@ -169,3 +169,4 @@ if uploaded_file:
     # -------- CLEANUP --------
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
