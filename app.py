@@ -145,6 +145,7 @@ if uploaded_file:
             
             progress.progress(80)
 
+import pandas as pd
             # -------- DISPLAY AS TABLE --------
             st.subheader("📝 Speaker-wise Transcript (Table View)")
 
@@ -164,6 +165,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
