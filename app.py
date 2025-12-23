@@ -113,54 +113,66 @@ if uploaded_file:
             progress.progress(40)
 
 
-
-
             status.write("🎧 Loading audio...")
             audio, sr = librosa.load(audio_path, sr=16000)
             progress.progress(50)
 
             st.subheader("📝 Speaker-wise Transcript")
 
+            results = []
+            
+            # -------- BUILD RESULTS (EXACTLY LIKE COLAB) --------
+            for segment, _, speaker in annotation.itertracks(yield_label=True):
+                start = int(segment.start * sr)
+                end = int(segment.end * sr)
+            
+                segment_audio = audio[start:end]
+            
+                # skip very short segments (< 0.5s)
+                if len(segment_audio) < int(sr * 0.5):
+                    continue
+            
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_seg:
+                    sf.write(tmp_seg.name, segment_audio, sr)
+            
+                transcription = whisper_model.transcribe(
+                    tmp_seg.name,
+                    fp16=False
+                )
+            
+                os.remove(tmp_seg.name)
+            
+                results.append({
+                    "speaker": speaker,
+                    "start": round(segment.start, 2),
+                    "end": round(segment.end, 2),
+                    "text": transcription["text"].strip()
+                })
+            
+            # -------- DISPLAY RESULTS (STREAMLIT UI) --------
             speaker_colors = {}
             palette = ["#00ffd5", "#ffb703", "#fb8500",
                        "#8ecae6", "#ff006e", "#8338ec"]
-
-            for segment, _, speaker in annotation.itertracks(yield_label=True):
-
-                if speaker not in speaker_colors:
-                    speaker_colors[speaker] = random.choice(palette)
-
-                start = int(segment.start * sr)
-                end = int(segment.end * sr)
-                segment_audio = audio[start:end]
-
-                if len(segment_audio) < int(sr * 0.5):
-                    continue
-
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as seg:
-                    sf.write(seg.name, segment_audio, sr)
-
-                transcription = whisper_model.transcribe(
-                    seg.name,
-                    fp16=False
-                )
-
-                os.remove(seg.name)
-
+            
+            for r in results:
+                if r["speaker"] not in speaker_colors:
+                    speaker_colors[r["speaker"]] = random.choice(palette)
+            
                 st.markdown(
                     f"""
                     <div class="speaker-card">
-                        <h4 style="color:{speaker_colors[speaker]}">
-                            🗣️ {speaker}
+                        <h4 style="color:{speaker_colors[r["speaker"]]}">
+                            🗣️ {r["speaker"]}
                         </h4>
                         <div class="time">
-                            ⏱️ {segment.start:.1f}s → {segment.end:.1f}s
+                            ⏱️ {r["start"]}s → {r["end"]}s
                         </div>
-                        <p>{transcription["text"].strip()}</p>
+                        <p>{r["text"]}</p>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
+
 
             progress.progress(100)
             status.success("✅ Processing complete!")
@@ -169,6 +181,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
