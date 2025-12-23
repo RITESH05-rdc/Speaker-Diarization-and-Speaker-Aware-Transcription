@@ -109,9 +109,9 @@ if uploaded_file:
             
             # -------- SPEAKER DIARIZATION --------
             status.write("🔍 Running speaker diarization...")
-            diarization = diarization_pipeline({"audio": audio_path})
-            annotation = diarization.speaker_diarization
+            annotation = diarization_pipeline({"audio": audio_path})
             progress.progress(40)
+
 
 
 
@@ -169,6 +169,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
