@@ -76,7 +76,7 @@ def load_models():
         "pyannote/speaker-diarization-3.1"
     )
 
-    whisper_model = whisper.load_model("tiny")
+    whisper_model = whisper.load_model("base")
     return diarization_pipeline, whisper_model
 
 diarization_pipeline, whisper_model = load_models()
@@ -169,6 +169,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
