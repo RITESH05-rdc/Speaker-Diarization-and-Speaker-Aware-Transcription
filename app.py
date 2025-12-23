@@ -5,25 +5,16 @@ import librosa
 import soundfile as sf
 import whisper
 from pyannote.audio import Pipeline
+import random
 import os
 import pandas as pd
 from huggingface_hub import login
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
-    page_title="Speaker Diarization & Speaker Aware Transcription",
+    page_title="Speaker Diarization & Transcription",
     layout="wide"
 )
-
-# ================= SESSION STATE INIT =================
-if "df" not in st.session_state:
-    st.session_state.df = None
-
-if "txt_output" not in st.session_state:
-    st.session_state.txt_output = None
-
-if "view_mode" not in st.session_state:
-    st.session_state.view_mode = "📋 Table View"
 
 # ================= CUSTOM CSS =================
 st.markdown("""
@@ -74,21 +65,29 @@ st.write(
 @st.cache_resource
 def load_models():
     hf_token = st.secrets.get("HF_TOKEN")
+
     if not hf_token:
-        st.error("❌ Hugging Face token not found.")
+        st.error("❌ Hugging Face token not found in Streamlit secrets.")
         st.stop()
 
     login(token=hf_token)
+
     diarization_pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1"
     )
+
     whisper_model = whisper.load_model("base")
+
     return diarization_pipeline, whisper_model
+
 
 diarization_pipeline, whisper_model = load_models()
 
 # ================= FILE UPLOAD =================
-uploaded_file = st.file_uploader("🎧 Upload Audio File", type=["wav", "mp3"])
+uploaded_file = st.file_uploader(
+    "🎧 Upload Audio File",
+    type=["wav", "mp3"]
+)
 
 if uploaded_file:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
@@ -98,125 +97,75 @@ if uploaded_file:
     st.audio(uploaded_file)
     st.divider()
 
-    # ================= PROCESS BUTTON =================
-    if st.button("🚀 Process Audio") or st.session_state.df is not None:
+    if st.button("🚀 Process Audio"):
+        progress = st.progress(0)
+        status = st.empty()
 
-        # ---------- RUN HEAVY PROCESSING ONLY ONCE ----------
-        if st.session_state.df is None:
+        with st.spinner("Analyzing speakers and transcribing..."):
 
-            progress = st.progress(0)
-            status = st.empty()
+            # -------- LOAD & NORMALIZE AUDIO --------
+            status.write("🎧 Normalizing audio...")
+            audio, sr = librosa.load(audio_path, sr=16000, mono=True)
+            sf.write(audio_path, audio, sr)
+            progress.progress(20)
 
-            with st.spinner("Analyzing speakers and transcribing..."):
+            # -------- SPEAKER DIARIZATION --------
+            status.write("🔍 Running speaker diarization...")
+            annotation = diarization_pipeline({"audio": audio_path})
+            progress.progress(40)
 
-                audio, sr = librosa.load(audio_path, sr=16000, mono=True)
-                sf.write(audio_path, audio, sr)
-                progress.progress(20)
 
-                annotation = diarization_pipeline({"audio": audio_path})
-                progress.progress(40)
+            # -------- COLLECT RESULTS (COLAB LOGIC) --------
+            results = []
 
-                results = []
+            status.write("📝 Transcribing segments...")
+            for segment, _, speaker in annotation.itertracks(yield_label=True):
+                start = int(segment.start * sr)
+                end = int(segment.end * sr)
 
-                for segment, _, speaker in annotation.itertracks(yield_label=True):
-                    start = int(segment.start * sr)
-                    end = int(segment.end * sr)
-                    segment_audio = audio[start:end]
+                segment_audio = audio[start:end]
 
-                    if len(segment_audio) < int(sr * 0.5):
-                        continue
+                # Skip very short segments (< 0.5s)
+                if len(segment_audio) < int(sr * 0.5):
+                    continue
 
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as seg:
-                        sf.write(seg.name, segment_audio, sr)
+                with tempfile.NamedTemporaryFile(
+                    suffix=".wav", delete=False
+                ) as tmp_seg:
+                    sf.write(tmp_seg.name, segment_audio, sr)
 
-                    text = whisper_model.transcribe(seg.name, fp16=False)["text"].strip()
-                    os.remove(seg.name)
-
-                    results.append({
-                        "speaker": speaker,
-                        "start": round(segment.start, 2),
-                        "end": round(segment.end, 2),
-                        "text": text
-                    })
-
-                df = pd.DataFrame(results)
-
-                if df.empty:
-                    st.warning("⚠️ No valid speech segments detected.")
-                    st.stop()
-
-                # Store results permanently
-                st.session_state.df = df
-
-                # Build TXT output once
-                txt = ""
-                for _, r in df.iterrows():
-                    txt += f"[{r['start']}s → {r['end']}s] {r['speaker']}: {r['text']}\n"
-
-                st.session_state.txt_output = txt
-
-                progress.progress(100)
-                status.success("✅ Processing complete!")
-
-        # ================= DISPLAY FROM SESSION STATE =================
-        df = st.session_state.df
-
-        
-
-        # -------- VIEW TOGGLE (NO RESET) --------
-        st.radio(
-            "Choose View",
-            ["📋 Table View", "💬 Chat View"],
-            horizontal=True,
-            key="view_mode"
-        )
-
-        # -------- TABLE VIEW --------
-        if st.session_state.view_mode == "📋 Table View":
-            st.dataframe(
-                df[["start", "end", "speaker", "text"]],
-                hide_index=True,
-                use_container_width=True
-            )
-
-        # -------- CHAT VIEW --------
-        else:
-            for _, r in df.iterrows():
-                st.markdown(
-                    f"""
-                    **{r['speaker']}**  
-                    <small>{r['start']}s → {r['end']}s</small>  
-                    {r['text']}
-                    ---
-                    """,
-                    unsafe_allow_html=True
+                transcription = whisper_model.transcribe(
+                    tmp_seg.name,
+                    fp16=False
                 )
 
-        st.divider()
+                os.remove(tmp_seg.name)
 
-        # -------- TALK-TIME SUMMARY --------
-        st.subheader("🧠 Talk-Time Summary")
-        summary = (
-            df.assign(Duration=df["end"] - df["start"])
-              .groupby("speaker", as_index=False)["Duration"]
-              .sum()
-              .round(2)
-        )
-        st.dataframe(summary, hide_index=True, use_container_width=True)
+                results.append({
+                    "speaker": speaker,
+                    "start": round(segment.start, 2),
+                    "end": round(segment.end, 2),
+                    "text": transcription["text"].strip()
+                })
 
-        st.divider()
-        
-        # -------- DOWNLOAD (NO RESET) --------
-        st.download_button(
-            "⬇ Download as .txt",
-            data=st.session_state.txt_output,
-            file_name="speaker_transcript.txt",
-            mime="text/plain",
-            key="download_txt"
-        )
+            progress.progress(80)
 
+            # -------- DISPLAY AS TABLE --------
+            st.subheader("📝 Speaker-wise Transcript (Table View)")
+
+            df = pd.DataFrame(results)
+
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            progress.progress(100)
+            status.success("✅ Processing complete!")
+
+        st.balloons()
+
+    # -------- CLEANUP --------
     if os.path.exists(audio_path):
         os.remove(audio_path)
-
-
-
