@@ -113,14 +113,8 @@ if uploaded_file:
             progress.progress(40)
 
 
-            status.write("🎧 Loading audio...")
-            audio, sr = librosa.load(audio_path, sr=16000)
-            progress.progress(50)
-
             st.subheader("📝 Speaker-wise Transcript")
-
             results = []
-            
             # -------- BUILD RESULTS (EXACTLY LIKE COLAB) --------
             for segment, _, speaker in annotation.itertracks(yield_label=True):
                 start = int(segment.start * sr)
@@ -181,6 +175,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
