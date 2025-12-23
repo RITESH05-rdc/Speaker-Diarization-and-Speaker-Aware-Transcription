@@ -151,8 +151,16 @@ if uploaded_file:
 
             # ================= TALK-TIME SUMMARY =================
             st.subheader("🧠 Talk-Time Summary")
-            summary = df.groupby("speaker")["duration"].sum().reset_index()
+            
+            summary = (
+                df.assign(Duration=df["End (s)"] - df["Start (s)"])
+                  .groupby("speaker", as_index=False)["Duration"]
+                  .sum()
+                  .round(2)
+            )
+            
             st.dataframe(summary, hide_index=True, use_container_width=True)
+
 
             st.divider()
 
@@ -211,6 +219,7 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
 
