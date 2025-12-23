@@ -26,7 +26,7 @@ if "view_mode" not in st.session_state:
     st.session_state.view_mode = "📋 Table View"
 
 # ================= CUSTOM CSS =================
-sst.markdown("""
+st.markdown("""
 <style>
 body {
     background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
@@ -217,5 +217,6 @@ if uploaded_file:
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
 
 
