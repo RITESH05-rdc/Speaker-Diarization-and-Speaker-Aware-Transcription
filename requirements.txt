@@ -1,14 +1,16 @@
 streamlit
 
-# Core ML stack (MATCHED)
+# Core stack
 numpy<2.0
 torch==2.2.2
 torchaudio==2.2.2
 
-# Audio + NLP
+# Hugging Face (PINNED!)
+huggingface_hub==0.20.3
+
+# Audio & speech
 pyannote.audio==3.1.1
 openai-whisper
 librosa
 soundfile
 ffmpeg-python
-huggingface_hub
